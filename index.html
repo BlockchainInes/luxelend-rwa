@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LuxeLend | Institutional RWA Portal</title>
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+    <!-- Wir nutzen Google Fonts für eine edlere Schrift -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #38bdf8;
+            --secondary: #10b981;
+            --bg: #020617;
+            --card-bg: rgba(30, 41, 59, 0.7);
+        }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: radial-gradient(circle at top right, #1e293b, #020617);
+            color: white; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Schicker Hintergrund-Effekt */
+        body::before {
+            content: "";
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: var(--primary);
+            filter: blur(150px);
+            opacity: 0.15;
+            top: 10%;
+            left: 10%;
+            z-index: -1;
+        }
+
+        .container { 
+            background: var(--card-bg);
+            backdrop-filter: blur(12px); /* Glas-Effekt */
+            padding: 50px; 
+            border-radius: 32px; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); 
+            width: 100%; 
+            max-width: 420px; 
+            text-align: center; 
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        h1 { 
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, #fff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px; 
+            font-size: 36px; 
+        }
+
+        .subtitle { color: #94a3b8; margin-bottom: 35px; font-weight: 400; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; }
+
+        .status-pill { 
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 16px; 
+            border-radius: 999px; 
+            font-size: 11px; 
+            margin-bottom: 30px; 
+            background: rgba(56, 189, 248, 0.1); 
+            color: var(--primary);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            font-weight: 600;
+        }
+
+        input { 
+            width: 100%; 
+            padding: 18px; 
+            margin-bottom: 24px; 
+            border-radius: 16px; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            background: rgba(15, 23, 42, 0.6); 
+            color: white; 
+            font-size: 16px; 
+            box-sizing: border-box;
+            transition: 0.2s;
+        }
+
+        input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1); }
+
+        button { 
+            width: 100%; 
+            padding: 18px; 
+            border-radius: 16px; 
+            border: none; 
+            font-weight: 700; 
+            cursor: pointer; 
+            font-size: 16px; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+
+        .btn-connect { background: white; color: #020617; margin-bottom: 12px; }
+        .btn-connect:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255,255,255,0.1); }
+
+        .btn-borrow { 
+            background: linear-gradient(135deg, var(--secondary), #059669); 
+            color: white; 
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+        .btn-borrow:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3); }
+
+        #log { margin-top: 25px; font-size: 13px; font-weight: 500; min-height: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>LuxeLend</h1>
+    <div class="subtitle">Institutional RWA</div>
+    <div id="status" class="status-pill">● Network: Sepolia (Disconnected)</div>
+    
+    <button class="btn-connect" onclick="connectWallet()">Connect Identity</button>
+    
+    <div style="margin: 30px 0; height: 1px; background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent);"></div>
+
+    <input type="number" id="propertyId" placeholder="Asset Identifier (e.g. 1)">
+    <button class="btn-borrow" onclick="borrow()">Execute Credit Line</button>
+    
+    <div id="log"></div>
+</div>
+
+<script>
+    const contractAddress = "0xe4f5cca0b1623d090c5c04d54b58a25b631b9446";
+    const abi = [
+        "function borrowAgainstProperty(uint256 _propertyId) public",
+        "function propertyValuations(uint256) public view returns (uint256)"
+    ];
+
+    let signer;
+    let contract;
+
+    async function connectWallet() {
+        if (window.ethereum) {
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                signer = provider.getSigner();
+                contract = new ethers.Contract(contractAddress, abi, signer);
+                
+                const addr = await signer.getAddress();
+                document.getElementById('status').innerHTML = "● Connected: " + addr.substring(0,6) + "..." + addr.substring(38);
+                document.getElementById('status').style.color = "#10b981";
+                document.getElementById('status').style.background = "rgba(16, 185, 129, 0.1)";
+                document.getElementById('status').style.borderColor = "rgba(16, 185, 129, 0.2)";
+            } catch (error) {
+                document.getElementById('log').style.color = "#f87171";
+                document.getElementById('log').innerText = "Auth failed.";
+            }
+        } else {
+            alert("Security Module Missing: Please install MetaMask.");
+        }
+    }
+
+    async function borrow() {
+        if (!contract) {
+            document.getElementById('log').style.color = "#fbbf24";
+            document.getElementById('log').innerText = "Please authenticate via wallet first.";
+            return;
+        }
+
+        const id = document.getElementById('propertyId').value;
+        if (!id) {
+            document.getElementById('log').innerText = "Asset Identifier required.";
+            return;
+        }
+
+        try {
+            document.getElementById('log').style.color = "var(--primary)";
+            document.getElementById('log').innerText = "Initializing smart contract call...";
+            
+            const tx = await contract.borrowAgainstProperty(id);
+            document.getElementById('log').innerText = "Awaiting block confirmation...";
+            
+            await tx.wait();
+            document.getElementById('log').style.color = "var(--secondary)";
+            document.getElementById('log').innerText = "Transaction Finalized. Credit Issued.";
+        } catch (error) {
+            document.getElementById('log').style.color = "#f87171";
+            document.getElementById('log').innerText = "Protocol Error: " + (error.reason || "Rejected");
+        }
+    }
+</script>
+
+</body>
+</html>

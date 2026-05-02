@@ -1,0 +1,32 @@
+# --- Security & Sensitive Data ---
+# Never share your private keys or local environment variables
+.env
+.env.*
+config.json
+
+# --- Foundry & Compilation Artifacts ---
+# These folders contain temporary build files and dependencies
+out/
+cache/
+lib/
+broadcast/
+
+# --- Testing & Quality Control ---
+# Hides local test results and temporary logs
+test-results/
+coverage/
+*.log
+*.lock
+
+# --- System & IDE Files ---
+# Prevents Lenovo/Windows system files and VS Code settings from being uploaded
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Frontend Dependencies ---
+# If you ever add node modules, they stay local
+node_modules/
+dist/
